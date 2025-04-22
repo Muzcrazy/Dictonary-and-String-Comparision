@@ -1,0 +1,283 @@
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import mysql.connector
+
+app = Flask(__name__)
+CORS(app)
+# Database connection
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "root",
+    "password": "mysql@123",
+    "database": "word"
+}
+
+def get_word_details(lang, eng_word):
+    """Fetch word details (meaning, IPA, etc.) for a given language and English word."""
+    db = mysql.connector.connect(**DB_CONFIG)
+    cursor = db.cursor(dictionary=True)
+    query = """
+        SELECT ref, source, cat, gcat, wid, eng_word, mrems, lang, nscript, ipa
+        FROM word
+        WHERE lang = %s AND eng_word = %s
+    """
+    cursor.execute(query, (lang, eng_word))
+    result = cursor.fetchone()
+    cursor.close()
+    db.close()
+    return result
+
+@app.route('/')
+def home():
+    """Render the main web page."""
+    return render_template("index.html")
+
+@app.route('/search', methods=['GET'])
+def search_word():
+    """Search for a word and return its details."""
+    lang = request.args.get("lang")
+    eng_word = request.args.get("eng_word")
+
+    if not lang or not eng_word:
+        return jsonify({"error": "Language and English word are required"}), 400
+
+    word_details = get_word_details(lang, eng_word)
+    if not word_details:
+        return jsonify({"error": "Word not found"}), 404
+
+    return jsonify(word_details)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# Frontend HTML (index.html)
+with open("templates/index.html", "w") as f:
+    f.write('''
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Search</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --light-gray: #e9ecef;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-weight: 300;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        #results {
+            margin-top: 30px;
+        }
+
+        .result-item {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s;
+            text-align: center;
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
+        }
+
+        .native-script {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        .details {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+    </style>
+    <script>
+        async function searchWord() {
+            const lang = document.getElementById('language-select').value;
+            const engWord = document.getElementById('eng-word-input').value;
+
+            if (!lang || !engWord) {
+                alert('Please select a language and enter an English word');
+                return;
+            }
+
+            const response = await fetch(`/search?lang=${encodeURIComponent(lang)}&eng_word=${encodeURIComponent(engWord)}`);
+            const data = await response.json();
+
+            const resultDiv = document.getElementById('results');
+            if (data.error) {
+                resultDiv.innerHTML = `<div class="no-results">${data.error}</div>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <div class="native-script">${data.nscript}</div>
+                    <div class="details">
+                        <strong>English Word:</strong> ${data.eng_word}<br>
+                        <strong>Meaning:</strong> ${data.mrems}<br>
+                        <strong>IPA:</strong> ${data.ipa}<br>
+                        <strong>Category:</strong> ${data.cat}<br>
+                        <strong>Grammatical Category:</strong> ${data.gcat}<br>
+                        <strong>Source:</strong> ${data.source}<br>
+                        <strong>Reference:</strong> ${data.ref}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Word Search</h1>
+            <p class="subtitle">Find the meaning, IPA, and native script of English words</p>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="language-select">Select Language:</label>
+                <select id="language-select">
+                    <option value="Assamese">Assamese</option>
+                    <option value="Bengali">Bengali</option>
+                    <option value="Gujarati">Gujarati</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Kannada">Kannada</option>
+                    <option value="Kashmiri">Kashmiri</option>
+                    <option value="Konkani">Konkani</option>
+                    <option value="Malayalam">Malayalam</option>
+                    <option value="Manipuri">Manipuri</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Nepali">Nepali</option>
+                    <option value="Odia">Odia</option>
+                    <option value="Punjabi">Punjabi</option>
+                    <option value="Sanskrit">Sanskrit</option>
+                    <option value="Santali">Santali</option>
+                    <option value="Sindhi">Sindhi</option>
+                    <option value="Tamil">Tamil</option>
+                    <option value="Telugu">Telugu</option>
+                    <option value="Urdu">Urdu</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="eng-word-input">Enter English Word:</label>
+                <input type="text" id="eng-word-input" placeholder="Type an English word">
+            </div>
+
+            <button onclick="searchWord()">Search</button>
+        </div>
+        <div class="link-to-comparison">
+    <a href="http://127.0.0.1:5001">Go to IPA Comparison Tool</a>
+</div>
+        <div class="card" id="results">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+</body>
+</html>
+    ''')

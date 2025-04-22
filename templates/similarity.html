@@ -1,0 +1,220 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Word Similarity Checker</title>
+        <style>
+            :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --light-gray: #e9ecef;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-weight: 300;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        #results {
+            margin-top: 30px;
+        }
+
+        .result-item {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s;
+            text-align: center;
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
+        }
+
+        .native-script {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        .details {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+            .nav-button {
+                display: inline-block;
+                margin-top: 20px;
+                padding: 10px 20px;
+                background-color: var(--primary-color);
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: 600;
+                transition: background-color 0.3s, transform 0.2s;
+            }
+
+            .nav-button:hover {
+                background-color: var(--secondary-color);
+                transform: translateY(-2px);
+            }
+        </style>
+        <script>
+              async function searchWord() {
+            const lang = document.getElementById('language-select').value;
+            const engWord = document.getElementById('eng-word-input').value;
+
+            if (!lang || !engWord) {
+                alert('Please select a language and enter an English word');
+                return;
+            }
+
+            const response = await fetch(`/search?lang=${encodeURIComponent(lang)}&eng_word=${encodeURIComponent(engWord)}`);
+            const data = await response.json();
+
+            const resultDiv = document.getElementById('results');
+            if (data.error) {
+                resultDiv.innerHTML = `<div class="no-results">${data.error}</div>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <div class="native-script">${data.nscript}</div>
+                    <div class="details">
+                        <strong>English Word:</strong> ${data.eng_word}<br>
+                        <strong>Meaning:</strong> ${data.mrems}<br>
+                        <strong>IPA:</strong> ${data.ipa}<br>
+                        <strong>Category:</strong> ${data.cat}<br>
+                        <strong>Grammatical Category:</strong> ${data.gcat}<br>
+                        <strong>Source:</strong> ${data.source}<br>
+                        <strong>Reference:</strong> ${data.ref}
+                    </div>
+                </div>
+            `;
+        }
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Word Similarity Checker</h1>
+                <p class="subtitle">Find similar words across Indian languages</p>
+                <a href="/" class="nav-button">Go to Word Search</a>
+            </div>
+
+            <div class="card">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="dropdown-tab">Select from List</button>
+                    <button class="tab" data-tab="input-tab">Enter Manually</button>
+                    <button class="tab" data-tab="both-tab">Compare Two Words</button>
+                </div>
+
+                <!-- Your existing tab content -->
+            </div>
+
+            <div class="card" id="results">
+                <!-- Results will be displayed here -->
+            </div>
+        </div>
+    </body>
+    </html>
+    

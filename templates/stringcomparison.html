@@ -1,0 +1,592 @@
+
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPA Word Similarity Checker</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --light-gray: #e9ecef;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-weight: 300;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            background-color: var(--light-gray);
+            border: none;
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .tab:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background-color: #dee2e6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.25);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        #results {
+            margin-top: 30px;
+        }
+
+        .result-header {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+
+        .searched-word {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .result-item {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s;
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
+        }
+
+        .similarity-score {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .common-letters {
+            color: var(--accent-color);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric {
+            padding: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IPA Word Similarity Checker</h1>
+            <p class="subtitle">Find similar IPA words across Indian languages</p>
+        </div>
+        
+        <div class="card">
+            <div class="tab-container">
+                <button class="tab active" data-tab="tab1">Compare Languages</button>
+                <button class="tab" data-tab="tab2">Enter Manually</button>
+                <button class="tab" data-tab="tab3">Compare Two Words</button>
+                <button class="tab" data-tab="tab4">Same English Word</button>
+            </div>
+            
+            <!-- Tab 1: Compare Languages -->
+            <div id="tab1" class="tab-content active">
+                <div class="form-group">
+                    <label for="dropdown-language-1">Select First Language:</label>
+                    <select id="dropdown-language-1" class="language-select">
+                        <option value="Assamese">Assamese</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Kashmiri">Kashmiri</option>
+                        <option value="Konkani">Konkani</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Manipuri">Manipuri</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Nepali">Nepali</option>
+                        <option value="Odia">Odia</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Santali">Santali</option>
+                        <option value="Sindhi">Sindhi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Urdu">Urdu</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dropdown-language-2">Select Second Language:</label>
+                    <select id="dropdown-language-2" class="language-select">
+                        <option value="Assamese">Assamese</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Kashmiri">Kashmiri</option>
+                        <option value="Konkani">Konkani</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Manipuri">Manipuri</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Nepali">Nepali</option>
+                        <option value="Odia">Odia</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Santali">Santali</option>
+                        <option value="Sindhi">Sindhi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Urdu">Urdu</option>
+                    </select>
+                </div>
+                
+                <button onclick="compareLanguages()">Compare Languages</button>
+                        <button onclick="calculateOverallSimilarity()">Calculate Overall Similarity</button>
+                    </div>
+            </div>
+            
+            <!-- Tab 2: Enter Manually -->
+            <div id="tab2" class="tab-content">
+                <div class="form-group">
+                    <label for="input-language">Select Language:</label>
+                    <select id="input-language" class="language-select">
+                        <option value="Assamese">Assamese</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Kashmiri">Kashmiri</option>
+                        <option value="Konkani">Konkani</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Manipuri">Manipuri</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Nepali">Nepali</option>
+                        <option value="Odia">Odia</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Santali">Santali</option>
+                        <option value="Sindhi">Sindhi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Urdu">Urdu</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="input-word">Enter Word:</label>
+                    <input type="text" id="input-word" class="word-input" placeholder="Type a word">
+                </div>
+                
+                <button onclick="compareWord()">Find Similar Words</button>
+            </div>
+            
+            <!-- Tab 3: Compare Two Words -->
+            <div id="tab3" class="tab-content">
+                <div class="form-group">
+                    <label for="both-word-1">Enter First Word:</label>
+                    <input type="text" id="both-word-1" class="word-input" placeholder="Type the first word">
+                </div>
+                
+                <div class="form-group">
+                    <label for="both-word-2">Enter Second Word:</label>
+                    <input type="text" id="both-word-2" class="word-input" placeholder="Type the second word">
+                </div>
+                
+                <button onclick="compareTwoWords()">Compare Words</button>
+            </div>
+            
+            <!-- Tab 4: Same English Word -->
+            <div id="tab4" class="tab-content">
+                <div class="form-group">
+                    <label for="same-eng-word-lang1">Select First Language:</label>
+                    <select id="same-eng-word-lang1" class="language-select">
+                        <option value="Assamese">Assamese</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Kashmiri">Kashmiri</option>
+                        <option value="Konkani">Konkani</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Manipuri">Manipuri</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Nepali">Nepali</option>
+                        <option value="Odia">Odia</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Santali">Santali</option>
+                        <option value="Sindhi">Sindhi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Urdu">Urdu</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="same-eng-word-lang2">Select Second Language:</label>
+                    <select id="same-eng-word-lang2" class="language-select">
+                        <option value="Assamese">Assamese</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Kashmiri">Kashmiri</option>
+                        <option value="Konkani">Konkani</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Manipuri">Manipuri</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Nepali">Nepali</option>
+                        <option value="Odia">Odia</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Sanskrit">Sanskrit</option>
+                        <option value="Santali">Santali</option>
+                        <option value="Sindhi">Sindhi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Urdu">Urdu</option>
+                    </select>
+                </div>
+                
+                <button onclick="compareSameEngWord()">Compare Words</button>
+            </div>
+        </div>
+        <div class="link-to-dict">
+    <a href="http://127.0.0.1:5000">Go to Dictionary Tool</a>
+      </div>
+        <div class="card" id="results">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTabs();
+        });
+
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const contentId = this.getAttribute('data-tab');
+                    document.getElementById(contentId).classList.add('active');
+                });
+            });
+        }
+
+        async function compareLanguages() {
+            const lang1 = document.querySelector('#dropdown-language-1').value;
+            const lang2 = document.querySelector('#dropdown-language-2').value;
+            
+            const url = `/compare_languages?lang1=${encodeURIComponent(lang1)}&lang2=${encodeURIComponent(lang2)}`;
+            const response = await fetch(url);
+            const results = await response.json();
+            const resultDiv = document.getElementById("results");
+            
+            if (results.length === 0) {
+                resultDiv.innerHTML = `<div class="no-results">No similar words found between ${lang1} and ${lang2}.</div>`;
+                return;
+            }
+            
+            resultDiv.innerHTML = `
+                <h2 class="result-header">Results for: <span class='searched-word'>${lang1} vs ${lang2}</span></h2>
+                ${results.map(r => `
+                    <div class='result-item'>
+                        <strong>${r.word1["ipa"]} (${lang1}) - ${r.word2["ipa"]} (${lang2})</strong> 
+                        <span class="similarity-score">(Similarity: ${r.similarity}%)</span><br>
+                        <strong>Nscript:</strong> ${r.word1["nscript"]} (${lang1}) - ${r.word2["nscript"]} (${lang2})<br>
+                        <strong>English Word:</strong> ${r.word1["eng_word"]} (${lang1}) - ${r.word2["eng_word"]} (${lang2})<br>
+                        Common Letters: <span class='common-letters'>${r.common_letters}</span>
+                        
+                        <div class="metric-grid">
+                            <div class="metric">Front Match: ${r.front_match_pct}%</div>
+                            <div class="metric">End Match: ${r.end_match_pct}%</div>
+                            <div class="metric">Middle Match: ${r.middle_match_pct}%</div>
+                            <div class="metric">Pron. Similarity: ${r.pron_similarity}%</div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function compareWord() {
+            const word = document.querySelector('#input-word').value;
+            const lang = document.querySelector('#input-language').value;
+            
+            if (!word.trim()) {
+                alert('Please enter a word to compare');
+                return;
+            }
+            
+            const url = `/compare_word?word=${encodeURIComponent(word)}&lang=${encodeURIComponent(lang)}`;
+            const response = await fetch(url);
+            const results = await response.json();
+            const resultDiv = document.getElementById("results");
+            
+            if (results.length === 0) {
+                resultDiv.innerHTML = `<div class="no-results">No similar words found for "${word}".</div>`;
+                return;
+            }
+            
+            resultDiv.innerHTML = `
+                <h2 class="result-header">Results for: <span class='searched-word'>${word}</span></h2>
+                ${results.map(r => `
+                    <div class='result-item'>
+                        <strong>${word} - ${r.word["ipa"]}</strong> 
+                        <span class="similarity-score">(Similarity: ${r.similarity}%)</span><br>
+                        <strong>Nscript:</strong> ${r.word["nscript"]}<br>
+                        <strong>English Word:</strong> ${r.word["eng_word"]}<br>
+                        Common Letters: <span class='common-letters'>${r.common_letters}</span>
+                        
+                        <div class="metric-grid">
+                            <div class="metric">Front Match: ${r.front_match_pct}%</div>
+                            <div class="metric">End Match: ${r.end_match_pct}%</div>
+                            <div class="metric">Middle Match: ${r.middle_match_pct}%</div>
+                            <div class="metric">Pron. Similarity: ${r.pron_similarity}%</div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function compareTwoWords() {
+            const word1 = document.querySelector('#both-word-1').value;
+            const word2 = document.querySelector('#both-word-2').value;
+            
+            if (!word1.trim() || !word2.trim()) {
+                alert('Please enter both words to compare');
+                return;
+            }
+            
+            const url = `/compare_two_words?word1=${encodeURIComponent(word1)}&word2=${encodeURIComponent(word2)}`;
+            const response = await fetch(url);
+            const result = await response.json();
+            const resultDiv = document.getElementById("results");
+            
+            resultDiv.innerHTML = `
+                <h2 class="result-header">Results for: <span class='searched-word'>${word1} vs ${word2}</span></h2>
+                <div class='result-item'>
+                    <strong>${word1} - ${word2}</strong> 
+                    <span class="similarity-score">(Similarity: ${result.similarity}%)</span><br>
+                    Common Letters: <span class='common-letters'>${result.common_letters}</span>
+                    
+                    <div class="metric-grid">
+                        <div class="metric">Front Match: ${result.front_match_pct}%</div>
+                        <div class="metric">End Match: ${result.end_match_pct}%</div>
+                        <div class="metric">Middle Match: ${result.middle_match_pct}%</div>
+                        <div class="metric">Pron. Similarity: ${result.pron_similarity}%</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function compareSameEngWord() {
+            const lang1 = document.querySelector('#same-eng-word-lang1').value;
+            const lang2 = document.querySelector('#same-eng-word-lang2').value;
+            
+            const url = `/compare_same_eng_word?lang1=${encodeURIComponent(lang1)}&lang2=${encodeURIComponent(lang2)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const results = data.results;
+            const overall_similarity = data.overall_similarity;
+            const resultDiv = document.getElementById("results");
+            
+            if (results.length === 0) {
+                resultDiv.innerHTML = `<div class="no-results">No similar words found with the same English word between ${lang1} and ${lang2}.</div>`;
+                return;
+            }
+            
+            resultDiv.innerHTML = `
+                <h2 class="result-header">Results for: <span class='searched-word'>${lang1} vs ${lang2}</span></h2>
+                <p><strong>Overall Similarity Score:</strong> ${overall_similarity}%</p>
+                ${results.map(r => `
+                    <div class='result-item'>
+                        <strong>${r.word1["ipa"]} (${lang1}) - ${r.word2["ipa"]} (${lang2})</strong> 
+                        <span class="similarity-score">(Similarity: ${r.similarity}%)</span><br>
+                        <strong>Nscript:</strong> ${r.word1["nscript"]} (${lang1}) - ${r.word2["nscript"]} (${lang2})<br>
+                        <strong>English Word:</strong> ${r.word1["eng_word"]}<br>
+                        Common Letters: <span class='common-letters'>${r.common_letters}</span>
+                        
+                        <div class="metric-grid">
+                            <div class="metric">Front Match: ${r.front_match_pct}%</div>
+                            <div class="metric">End Match: ${r.end_match_pct}%</div>
+                            <div class="metric">Middle Match: ${r.middle_match_pct}%</div>
+                            <div class="metric">Pron. Similarity: ${r.pron_similarity}%</div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        async function calculateOverallSimilarity() {
+            const lang1 = document.querySelector('#dropdown-language-1').value;
+            const lang2 = document.querySelector('#dropdown-language-2').value;
+            
+            const url = `/overall_similarity?lang1=${encodeURIComponent(lang1)}&lang2=${encodeURIComponent(lang2)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const resultDiv = document.getElementById("results");
+            
+            resultDiv.innerHTML = `
+                <h2 class="result-header">Overall Similarity Score</h2>
+                <div class='result-item'>
+                    <strong>${data.lang1} vs ${data.lang2}</strong><br>
+                    <span class="similarity-score">Overall Similarity: ${data.overall_similarity}%</span>
+                </div>
+            `;
+        }
+            
+    </script>
+</body>
+</html>
+    
